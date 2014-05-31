@@ -8,7 +8,7 @@ using namespace std;
 #define VERTEXMAX 50
 #define white 0
 #define black 1
-#define Debug3
+//#define Debug3
 
 class vertex{
 	public:
@@ -76,21 +76,51 @@ int calMaxFlow()
 			augPath.pop();
 
 			p_vtx = vtxVec[vtxIdx1];
-			if(p_vtx->edgeList[vtxIdx2] > augFlow)
+			#ifdef Debug3
+			cout << "Path: " << vtxIdx1 << " to " << vtxIdx2 << " weight= " 
+					 << p_vtx->edgeList[vtxIdx2] << endl;
+			#endif
+			if(p_vtx->edgeList[vtxIdx2] > augFlow){
 				p_vtx->edgeList[vtxIdx2] -= augFlow;
-			else
+				#ifdef Debug3
+				cout << "Change Path: " << vtxIdx1 << " to " << vtxIdx2 << " weight= " 
+					 	 << p_vtx->edgeList[vtxIdx2] << endl;
+				#endif
+			}
+			else{
 				p_vtx->edgeList.erase(p_vtx->edgeList.find(vtxIdx2));
+				#ifdef Debug3
+				if(p_vtx->edgeList.find(vtxIdx2) == p_vtx->edgeList.end())
+					cout << "Delete Path: " << vtxIdx1 << " to " << vtxIdx2 << endl;
+				else
+					cout << "Delete Path: " << vtxIdx1 << " to " << vtxIdx2 
+							 << " fail" << endl;
+				#endif
+			}
 
 			p_vtx = vtxVec[vtxIdx2];
-			if(p_vtx->edgeList.find(vtxIdx1) == p_vtx->edgeList.end())
+			if(p_vtx->edgeList.find(vtxIdx1) == p_vtx->edgeList.end()){
 				p_vtx->edgeList[vtxIdx1] = augFlow;
-			else
+				#ifdef Debug3
+				cout << "Add Path: " << vtxIdx2 << " to " << vtxIdx1 << " weight= " 
+					 	 << p_vtx->edgeList[vtxIdx1] << endl;
+				#endif
+			}
+			else{
 				p_vtx->edgeList[vtxIdx1] += augFlow;
+				#ifdef Debug3
+				cout << "Chnage Path: " << vtxIdx2 << " to " << vtxIdx1 << " weight= " 
+					 	 << p_vtx->edgeList[vtxIdx1] << endl;
+				#endif
+			}
 
 			vtxIdx1 = vtxIdx2;
 		}
 
 		augFlow = findAugPath();
+		#ifdef Debug3
+		cout << "Find aug Flow: " << augFlow << endl;
+		#endif
 	}
 
 	maxFlow = 0;
@@ -107,27 +137,30 @@ int findAugPath()
 	int augFlow(0), vtxIdx, preIdx;
 	bool flag(false);
 	vertex *p_vtx1, *p_vtx2;
-	queue<vertex*> bfsQ, popQ;
+	queue<vertex*> bfsQ, pushRecQ;
 	map<int, int>::iterator it;
 
 	bfsQ.push(vtxVec[source]);
+	vtxVec[source]->state = black;
+	pushRecQ.push(vtxVec[source]);
 
 	while(bfsQ.size() > 0){
 		p_vtx1 = bfsQ.front();
 		bfsQ.pop();
-		popQ.push(p_vtx1);
 		for(it=p_vtx1->edgeList.begin(); it!=p_vtx1->edgeList.end(); it++){
 			p_vtx2 = vtxVec[it->first];	
 			if(p_vtx2->index == target){
 				p_vtx2->preVtx = p_vtx1->index;
 				flag = true;
 				augFlow = it->second;
+				pushRecQ.push(p_vtx2);
 				break;
 			}
 			else if(p_vtx2->state == white){
 				p_vtx2->state = black;
 				p_vtx2->preVtx = p_vtx1->index;
 				bfsQ.push(p_vtx2);
+				pushRecQ.push(p_vtx2);
 			}
 		}
 		if(flag == true)
@@ -150,9 +183,9 @@ int findAugPath()
 		}
 	}
 
-	while(popQ.size() > 0){
-		p_vtx1 = popQ.front();
-		popQ.pop();
+	while(pushRecQ.size() > 0){
+		p_vtx1 = pushRecQ.front();
+		pushRecQ.pop();
 		p_vtx1->state = white;
 		p_vtx1->preVtx = -1;
 	}
